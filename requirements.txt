@@ -3,3 +3,6 @@ pandas
 python-docx
 openpyxl
 PyPDF2
+win32com.client
+re
+os
