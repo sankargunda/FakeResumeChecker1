@@ -3,8 +3,12 @@ import re
 import pandas as pd
 import docx
 import PyPDF2
-import win32com.client
 import streamlit as st
+import platform
+
+# Optional import for Windows-only .doc support
+if platform.system() == "Windows":
+    import win32com.client
 
 # === CONFIGURATION ===
 BASE_PATH = os.path.dirname(__file__)
@@ -15,6 +19,7 @@ FAKE_OUTPUT = os.path.join(BASE_PATH, "Fake_Results.xlsx")
 TEMP_RESUME_PATH = os.path.join(BASE_PATH, "temp_uploaded_resume")
 
 # === HELPER FUNCTIONS ===
+
 def extract_text_from_docx(file_path):
     try:
         doc = docx.Document(file_path)
@@ -33,6 +38,9 @@ def extract_text_from_pdf(file_path):
         return ""
 
 def extract_text_from_doc(file_path):
+    if platform.system() != "Windows":
+        st.warning("Skipping .doc file: Not supported on non-Windows systems.")
+        return ""
     try:
         word = win32com.client.Dispatch("Word.Application")
         word.Visible = False
@@ -91,6 +99,7 @@ if uploaded_file is not None:
         f.write(uploaded_file.getbuffer())
 
     ext = uploaded_file.name.lower().split(".")[-1]
+
     if ext == "pdf":
         text = extract_text_from_pdf(TEMP_RESUME_PATH)
     elif ext == "docx":

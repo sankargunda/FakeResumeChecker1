@@ -5,3 +5,5 @@ openpyxl
 PyPDF2
 re
 os
+platform
+
