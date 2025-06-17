@@ -39,7 +39,7 @@ def extract_text_from_pdf(file_path):
 
 def extract_text_from_doc(file_path):
     if platform.system() != "Windows":
-        st.warning("Skipping .doc file: Not supported on non-Windows systems.")
+        st.warning("Skipping .doc file: Not supported on Streamlit Cloud.")
         return ""
     try:
         word = win32com.client.Dispatch("Word.Application")
