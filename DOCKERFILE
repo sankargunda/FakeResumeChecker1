@@ -1,10 +1,17 @@
-# Dockerfile for Streamlit app that supports .doc files using antiword
+# Use official slim Python image
 FROM python:3.10-slim
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y antiword && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install required system dependencies for Python packages and antiword
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    libxml2-dev \
+    libxslt1-dev \
+    zlib1g-dev \
+    antiword \
+    libffi-dev \
+    libmagic1 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -13,16 +20,15 @@ ENV PYTHONUNBUFFERED=1
 # Create app directory
 WORKDIR /app
 
-# Install Python dependencies
+# Copy and install Python dependencies
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy the rest of the application
+# Copy app source code
 COPY . /app
 
-# Expose Streamlit default port
-
+# Expose Streamlit port
 EXPOSE 8501
 
-# Run the Streamlit app
+# Run Streamlit app
 CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
