@@ -8,3 +8,4 @@ textract==1.6.5
 extract-msg==0.28.4
 pillow==10.2.0
 lxml==4.9.3
+
