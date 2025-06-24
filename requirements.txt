@@ -1,11 +1,12 @@
 streamlit==1.35.0
-numpy==1.24.3
+numpy==1.23.5              # ✅ Downgraded to avoid compatibility issues with pandas
 pandas==1.5.3
 python-docx==1.1.0
 openpyxl==3.1.2
 PyPDF2==3.0.1
 textract==1.6.5
 extract-msg==0.28.4
-pillow==10.3.0
-lxml==5.2.1
+pillow==10.2.0              # ✅ Explicit version to prevent build errors
+lxml==4.9.3                 # ✅ Version compatible with slim containers
+
 
