@@ -1,7 +1,7 @@
 # Use official slim Python image
 FROM python:3.10-slim
 
-# Install required system dependencies for Python packages and antiword
+# Install required system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     gcc \
@@ -11,24 +11,28 @@ RUN apt-get update && apt-get install -y \
     antiword \
     libffi-dev \
     libmagic1 \
+    poppler-utils \
+    tesseract-ocr \
+    unrtf \
+    curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Copy and install Python dependencies
+# Install Python dependencies
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy app source code
+# Copy application code
 COPY . /app
 
 # Expose Streamlit port
 EXPOSE 8501
 
-# Run Streamlit app
+# Start Streamlit app
 CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
