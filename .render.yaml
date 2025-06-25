@@ -1,6 +1,10 @@
 services:
   - type: web
     name: resume-validator
-    env: python
-    buildCommand: "pip install --upgrade pip setuptools wheel && pip install -r requirements.txt"
-    startCommand: "streamlit run main.py --server.port 10000 --server.enableCORS false"
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
+
