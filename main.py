@@ -13,7 +13,6 @@ import shutil
 import subprocess
 
 
-
 # === CONFIGURATION ===
 BASE_PATH = os.path.dirname(__file__)
 FAKE_COMPANY_LIST_PATH = os.path.join(BASE_PATH, "fake_companies.xlsx")
