@@ -13,6 +13,7 @@ import shutil
 import subprocess
 
 
+
 # === CONFIGURATION ===
 BASE_PATH = os.path.dirname(__file__)
 FAKE_COMPANY_LIST_PATH = os.path.join(BASE_PATH, "fake_companies.xlsx")
@@ -59,7 +60,7 @@ def extract_text_from_doc(file_path):
 # === LOAD FAKE COMPANIES FROM EXCEL (Only Column A) ===
 def load_fake_companies():
     df = pd.read_excel(FAKE_COMPANY_LIST_PATH, usecols=[0])
-    print(df.head())
+    #print(df.head())
     return df.iloc[:, 0].dropna().astype(str).str.strip().str.lower().tolist()
 
 # === NORMALIZATION FUNCTION TO REMOVE PUNCTUATION & LOWERCASE ===
