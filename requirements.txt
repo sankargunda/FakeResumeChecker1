@@ -1,8 +1,7 @@
-pip>=24.0
 setuptools>=70.0.0
 wheel>=0.41.0
 streamlit==1.35.0
-numpy==1.26.4  
+numpy==1.26.4
 pandas==2.1.4
 python-docx==1.1.0
 openpyxl==3.1.2
