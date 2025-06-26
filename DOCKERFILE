@@ -1,14 +1,14 @@
-# ✅ Base Python image
-FROM python:3.10-slim
+# ✅ Use specific Python version to avoid Render defaulting to 3.13.x
+FROM python:3.10.13-slim
 
-# ✅ Prevent Python from writing pyc files to disc and enable instant output
+# ✅ Prevent Python from writing pyc files & flush output instantly
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# ✅ Create working directory
+# ✅ Set working directory inside container
 WORKDIR /app
 
-# ✅ Install build tools and system dependencies
+# ✅ Install system dependencies required by your app
 RUN apt-get update && apt-get install -y \
     gcc \
     build-essential \
@@ -23,14 +23,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# ✅ Upgrade pip and preinstall setuptools and wheel
-RUN pip install --upgrade pip setuptools>=65.0.0 wheel>=0.38.0
+# ✅ Upgrade pip and install wheel/setuptools first
+RUN pip install --upgrade pip setuptools wheel
 
-# ✅ Copy all project files into container
+# ✅ Copy all project files
 COPY . .
 
-# ✅ Install Python packages
+# ✅ Install all Python dependencies
 RUN pip install -r requirements.txt
 
-# ✅ Start Streamlit
+# ✅ Run your Streamlit app
 CMD ["streamlit", "run", "main.py", "--server.port=10000", "--server.enableCORS=false"]
+
