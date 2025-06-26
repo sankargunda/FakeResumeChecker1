@@ -2,8 +2,9 @@ services:
   - type: web
     name: resume-validator
     runtime: python
-    buildCommand: pip install --use-deprecated=legacy-resolver -r requirements.txt
-    startCommand: streamlit run main.py
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: streamlit run main.py --server.port=$PORT --server.enableCORS=false
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
+      - key: PORT
+        value: 10000
+
