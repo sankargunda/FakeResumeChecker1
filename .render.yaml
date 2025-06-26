@@ -1,7 +1,6 @@
 services:
   - type: web
     name: resume-validator
-    runtime: python
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: streamlit run main.py --server.port=$PORT --server.enableCORS=false
     envVars:
