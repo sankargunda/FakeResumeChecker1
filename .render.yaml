@@ -3,7 +3,7 @@ services:
     name: resume-validator
     runtime: docker  # <== THIS IS CRITICAL
     plan: free
-    dockerfilePath: Dockerfile
+    dockerfilePath: DOCKERFILE
     envVars:
       - key: PORT
         value: 10000
