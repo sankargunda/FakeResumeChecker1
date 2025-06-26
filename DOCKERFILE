@@ -1,28 +1,26 @@
+# Use Python 3.10.14
 FROM python:3.10.14-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
+# Set working directory
 WORKDIR /app
 
+# Install required system dependencies (if needed)
 RUN apt-get update && apt-get install -y \
-    gcc \
     build-essential \
-    libxml2-dev \
-    libxslt1-dev \
-    zlib1g-dev \
-    libmagic1 \
     poppler-utils \
+    libmagic1 \
     tesseract-ocr \
-    libffi-dev \
-    antiword \
-    curl \
+    unrtf \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip setuptools wheel
-
+# Copy project files
 COPY . .
 
-RUN pip install -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Expose port
+EXPOSE 10000
+
+# Run the app
 CMD ["streamlit", "run", "main.py", "--server.port=10000", "--server.enableCORS=false"]
