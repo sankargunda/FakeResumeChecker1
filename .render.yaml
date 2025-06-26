@@ -1,8 +1,9 @@
 services:
   - type: web
     name: resume-validator
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: streamlit run main.py --server.port=$PORT --server.enableCORS=false
+    runtime: docker  # <== THIS IS CRITICAL
+    plan: free
+    dockerfilePath: Dockerfile
     envVars:
       - key: PORT
         value: 10000
