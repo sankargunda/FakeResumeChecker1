@@ -4,6 +4,7 @@ FROM python:3.10-slim
 # Install system dependencies (LibreOffice + others)
 RUN apt-get update && apt-get install -y \
     libreoffice \
+    unoconv \
     tesseract-ocr \
     poppler-utils \
     unrtf \
@@ -17,6 +18,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     libglib2.0-0 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Add LibreOffice to PATH explicitly (important for Render)
+ENV PATH="/usr/lib/libreoffice/program:${PATH}"
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
