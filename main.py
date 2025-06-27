@@ -1,4 +1,3 @@
-
 import os
 import re
 import pandas as pd
@@ -12,6 +11,7 @@ import time
 import tempfile
 import shutil
 import subprocess
+
 
 # === CONFIGURATION ===
 BASE_PATH = os.path.dirname(__file__)
@@ -41,58 +41,70 @@ def extract_text_from_pdf(file_path):
 
 def extract_text_from_doc(file_path):
     if shutil.which("soffice") is None:
-        st.error("LibreOffice (soffice) is not installed or not in PATH.")
+        st.error("LibreOffice (soffice) is not installed or not in PATH. Please install LibreOffice to process .doc files.")
         return ""
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
-            subprocess.run(["soffice", "--headless", "--convert-to", "txt:Text", "--outdir", tmpdir, file_path], check=True)
+            subprocess.run([
+                "soffice", "--headless", "--convert-to", "txt:Text", "--outdir", tmpdir, file_path
+            ], check=True)
             base = os.path.splitext(os.path.basename(file_path))[0]
-            txt_path = os.path.join(tmpdir, base + ".txt")
-            with open(txt_path, "r", encoding="utf-8", errors="ignore") as f:
+            converted_txt = os.path.join(tmpdir, base + ".txt")
+            with open(converted_txt, "r", encoding="utf-8", errors="ignore") as f:
                 return f.read()
     except Exception as e:
-        st.error(f"Error extracting DOC: {e}")
+        st.error(f"Error extracting DOC with LibreOffice: {e}")
         return ""
 
-# === LOAD FAKE COMPANIES FROM EXCEL ===
+# === LOAD FAKE COMPANIES FROM EXCEL (Only Column A) ===
 def load_fake_companies():
     df = pd.read_excel(FAKE_COMPANY_LIST_PATH, usecols=[0])
+    #print(df.head())
     return df.iloc[:, 0].dropna().astype(str).str.strip().str.lower().tolist()
 
-# === NORMALIZATION ===
+# === NORMALIZATION FUNCTION TO REMOVE PUNCTUATION & LOWERCASE ===
 def normalize(s):
     return re.sub(r"[^\w\s]", "", s).lower().strip()
 
-# === DETECTION ===
-def is_fake_resume(text, fake_list):
+# === FAKE DETECTION LOGIC ===
+def is_fake_resume(text, fake_companies):
     lines = text.splitlines()
-    fake_set = set(map(normalize, fake_list))
-    delimiters = [',', ';', ' at ', ' with ', ' in ', '|', 'joined', 'organization',
-                  'experience', 'worked', 'working', 'currently', 'employer', 'company',
-                  'firm', 'served', 'project']
-    def split_line(line):
+    normalized_fakes = [normalize(fake) for fake in fake_companies]
+
+    delimiters = [
+        ',', ';', ' at ', ' with ', ' in ', '|', 'joined', 'organization',
+        'experience', 'worked', 'working', 'currently', 'employer', 'company',
+        'firm', 'served', 'project'
+    ]
+
+    def split_entities(line):
         for d in delimiters:
             line = line.replace(d, '|')
         return [e.strip() for e in line.split('|') if e.strip()]
+
     for line in lines:
-        for entity in split_line(line):
-            if normalize(entity) in fake_set:
-                return True, entity, line.strip()
+        entities = split_entities(line)
+        for entity in entities:
+            norm_entity = normalize(entity)
+            for fake in normalized_fakes:
+                if norm_entity == fake or norm_entity.startswith(fake + ' '):
+                    return True, fake, line.strip()
     return False, "", ""
 
-# === SAVE TO EXCEL ===
-def save_result_to_excel(df, path):
-    if os.path.exists(path):
+# === SAVE RESULTS TO EXCEL ===
+def save_result_to_excel(df, output_path):
+    if os.path.exists(output_path):
         try:
-            existing = pd.read_excel(path)
+            existing = pd.read_excel(output_path)
             df = pd.concat([existing, df], ignore_index=True)
         except zipfile.BadZipFile:
             pass
-    df.to_excel(path, index=False)
+    df.to_excel(output_path, index=False)
 
-# === CUSTOM CSS ===
+# === VISUAL ENHANCEMENTS: CSS STYLES ===
+# All custom styles are now included directly in main.py.
 st.markdown("""
-     <style>
+   <style>
      [data-testid="stWidgetLabel"] {
          color: rgb(214, 26, 96) !important;
          font-weight: bold;
@@ -250,69 +262,153 @@ st.markdown("""
          align-items: center;
          margin-bottom: 0.5em;
      }
-     </style>
-     <img src='https://i.postimg.cc/GtzH6R0W/image.jpg' class='tao-logo-absolute' />
- """, unsafe_allow_html=True)
+    </style>
+    <img src='https://i.postimg.cc/GtzH6R0W/image.jpg' class='tao-logo-absolute' />
+""", unsafe_allow_html=True)
 
-# === STREAMLIT UI ===
+# === Streamlit UI ===
 st.markdown('<div class="title-text">Resume Validator</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">Fake Company Detection</div>', unsafe_allow_html=True)
-
 uploaded_files = st.file_uploader("Upload Resume(s)", type=["pdf", "docx", "doc"], accept_multiple_files=True)
 
+
 if uploaded_files:
-    fake_list = load_fake_companies()
+    fake_companies = load_fake_companies()
     fake_rows, genuine_rows = [], []
 
     for uploaded_file in uploaded_files:
-        filename = uploaded_file.name
-        ext = filename.split('.')[-1].lower()
-        temp_path = os.path.join(TEMP_DIR, filename)
+        # Create a unique temp path using filename (safe)
+        safe_filename = uploaded_file.name.replace(" ", "_")
+        ext = safe_filename.split(".")[-1].lower()
+        temp_file_path = os.path.join(TEMP_DIR, safe_filename)
 
-        with open(temp_path, "wb") as f:
+        with open(temp_file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
+        # Extract text based on extension
         if ext == "pdf":
-            text = extract_text_from_pdf(temp_path)
+            text = extract_text_from_pdf(temp_file_path)
         elif ext == "docx":
-            text = extract_text_from_docx(temp_path)
+            text = extract_text_from_docx(temp_file_path)
         elif ext == "doc":
-            with st.spinner(f"Processing {filename}..."):
-                text = extract_text_from_doc(temp_path)
+            with st.spinner(f"Processing {uploaded_file.name} (this may take a few seconds)..."):
+                text = extract_text_from_doc(temp_file_path)
         else:
-            st.warning(f"Unsupported file format: {filename}")
+            st.error(f"Unsupported file format: {uploaded_file.name}")
             continue
 
-        is_fake, matched_company, matched_line = is_fake_resume(text, fake_list)
+        is_fake, matched_company, matched_line = is_fake_resume(text, fake_companies)
+
         if is_fake:
-            fake_rows.append({"Resume": filename, "Matched Fake Company": matched_company, "Line": matched_line, "Result": "FAKE"})
+            row = {
+                "Resume": uploaded_file.name,
+                "Matched Fake Company": matched_company,
+                "Line": matched_line,
+                "Result": "FAKE"
+            }
+            fake_rows.append(row)
         else:
-            genuine_rows.append({"Resume": filename, "Result": "GENUINE"})
+            row = {
+                "Resume": uploaded_file.name,
+                "Result": "GENUINE"
+            }
+            genuine_rows.append(row)
 
-        try: os.remove(temp_path)
-        except: pass
+        for _ in range(3):
+            try:
+                os.remove(temp_file_path)
+                break
+            except PermissionError:
+                time.sleep(0.5)
 
+    # === Display Fake Resumes Table ===
     if fake_rows:
         df_fake = pd.DataFrame(fake_rows)
+        df_fake = df_fake[["Resume", "Result", "Matched Fake Company", "Line"]]
         st.markdown("### ❌ Fake Resumes")
-        st.dataframe(df_fake)
+
+        table_html = (
+            "<table class='custom-table'>"
+            "<tr>"
+            "<th>Resume</th>"
+            "<th>Result</th>"
+            "<th>Matched Fake Company</th>"
+            "<th>Line</th>"
+            "</tr>"
+        )
+        for _, row in df_fake.iterrows():
+            resume = row['Resume']
+            result = row['Result']
+            fake_company = row['Matched Fake Company']
+            line = row['Line']
+            table_html += (
+                f"<tr>"
+                f"<td title='{resume}'>{resume}</td>"
+                f"<td style='color:#2C5282;font-weight:bold;'>{result}</td>"
+                f"<td title='{fake_company}'>{fake_company}</td>"
+                f"<td title='{line}'>{line}</td>"
+                f"</tr>"
+            )
+        table_html += "</table>"
+
+        st.markdown(table_html, unsafe_allow_html=True)
         save_result_to_excel(df_fake, FAKE_OUTPUT)
 
+    # === Display Genuine Resumes Table ===
     if genuine_rows:
         df_genuine = pd.DataFrame(genuine_rows)
-        st.markdown("### ✅ Genuine Resumes")
-        st.dataframe(df_genuine)
+        df_genuine = df_genuine[["Resume", "Result"]]
+        df_genuine.insert(0, "S. No", range(1, len(df_genuine) + 1))
+        st.markdown('<div class="genuine-title">✅ Genuine Resumes</div>', unsafe_allow_html=True)
+        # Custom HTML table for consistent styling
+        table_html = (
+            "<table class='custom-table'>"
+            "<tr>"
+            "<th>S. No</th>"
+            "<th>Resume</th>"
+            "<th>Result</th>"
+            "</tr>"
+        )
+        for i, row in df_genuine.iterrows():
+            sno = row['S. No']
+            resume = row['Resume']
+            result = row['Result']
+            table_html += (
+                f"<tr>"
+                f"<td>{sno}</td>"
+                f"<td title='{resume}'>{resume}</td>"
+                f"<td style='color:#2C5282;font-weight:bold;'>{result}</td>"
+                f"</tr>"
+            )
+        table_html += "</table>"
+        st.markdown(table_html, unsafe_allow_html=True)
         save_result_to_excel(df_genuine, GENUINE_OUTPUT)
 
-        genuine_files = [f for f in uploaded_files if f.name in {r['Resume'] for r in genuine_rows}]
+        # --- CORRECTED DOWNLOAD LOGIC ---
+        # Get a list of the actual uploaded file objects that are genuine
+        genuine_names = {row["Resume"] for row in genuine_rows}
+        genuine_files = [f for f in uploaded_files if f.name in genuine_names]
+
         if len(genuine_files) == 1:
-            f = genuine_files[0]
-            b64 = base64.b64encode(f.getvalue()).decode()
-            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{f.name}">{f.name}</a>'
+            # Only one genuine resume: provide a plain download link (no button, no custom style)
+            genuine_file = genuine_files[0]
+            resume_name = genuine_file.name
+            data = genuine_file.getvalue()
+            b64 = base64.b64encode(data).decode()
+            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{resume_name}">{resume_name}</a>'
             st.markdown(href, unsafe_allow_html=True)
         elif len(genuine_files) > 1:
+            # More than one: provide a ZIP download
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-                for f in genuine_files:
-                    zip_file.writestr(f.name, f.getvalue())
-            st.download_button("Download All Genuine Resumes as ZIP", data=zip_buffer.getvalue(), file_name="genuine_resumes.zip", mime="application/zip", key="download-zip-btn-real")
+                for genuine_file in genuine_files:
+                    # Add file to the zip using its name and in-memory content
+                    zip_file.writestr(genuine_file.name, genuine_file.getvalue())
+
+            st.download_button(
+                label="Download All Genuine Resumes as ZIP",
+                data=zip_buffer,
+                file_name="genuine_resumes.zip",
+                mime="application/zip",
+                key="download-zip-btn-real"
+            ) 
